@@ -7,6 +7,8 @@ export default function Home() {
   const [facts, setFacts] = useState([]);
   const [dimensions, setDimensions] = useState({});
   const [filteredFacts, setFilteredFacts] = useState([]);
+  const [mermaidSchema, setMermaidSchema] = useState('');
+  const [factTableName, setFactTableName] = useState(''); // NEW
 
   const handleFilesUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -16,15 +18,18 @@ export default function Home() {
         header: true,
         dynamicTyping: true,
         complete: (results) => {
-          const isFact = file.name.toLowerCase().includes("fact");
+          const isFact = file.name.toLowerCase().startsWith("fact_");
           const baseName = file.name.split('.')[0];
 
           if (isFact) {
             setFacts(results.data);
-            setFilteredFacts(results.data); // initial load
+            setFilteredFacts(results.data);
+            setFactTableName(baseName); // NEW
           } else {
             setDimensions(prev => ({ ...prev, [baseName]: results.data }));
           }
+
+          setTimeout(generateSchemaModel, 500);
         }
       });
     });
@@ -34,23 +39,52 @@ export default function Home() {
     const newFacts = facts.filter(row => {
       return Object.entries(filters).every(([dimensionKey, selectedId]) => {
         if (!selectedId) return true;
-
-        // deviner clé étrangère probable
         const idColumn = `id_${dimensionKey}`;
         return String(row[idColumn]) === String(selectedId);
       });
     });
-
     setFilteredFacts(newFacts);
   };
 
+  const generateSchemaModel = () => {
+    if (!facts || facts.length === 0) return;
+
+    const dimensionsOnly = Object.keys(dimensions).filter(name => name !== factTableName);
+    const factKeys = Object.keys(facts[0]);
+
+    let schema = `graph TD\\n  A[Table de faits: ${factTableName || "Faits"}]`;
+
+    dimensionsOnly.forEach(dim => {
+      const foreignKey = `id_${dim}`;
+      if (factKeys.includes(foreignKey)) {
+        const dimLabel = `B_${dim}`;
+        schema += ` --> ${dimLabel}[Dimension: ${dim}]`;
+        schema += `\\n  ${dimLabel} -->|clé primaire: id| A`;
+      }
+    });
+
+    setMermaidSchema(schema);
+  };
+
   return (
-    <div className="min-h-screen px-6 py-10 bg-white">
-      <h1 className="text-3xl font-bold text-indigo-700 mb-6 text-center">
-        Cube OLAP Interactif
+    <div className="min-h-screen px-6 py-10 bg-gray-50 text-gray-800">
+      <h1 className="text-3xl font-extrabold text-center text-indigo-700 mb-6">
+        📊 OLAP Cube Dashboard
       </h1>
 
-      <div className="mb-4">
+      <div className="bg-white p-6 rounded shadow-md mb-8">
+        <p className="text-md mb-2">
+          Bienvenue dans le tableau de bord OLAP interactif. Cette application permet d'explorer dynamiquement des données organisées selon une modélisation multidimensionnelle (étoile ou flocon), typique des entrepôts de données.
+        </p>
+        <ul className="list-disc list-inside text-sm text-gray-700">
+          <li>📁 Importez vos fichiers <strong>.csv</strong> représentant la table de faits (commençant par <code>fact_</code>) et les tables de dimensions.</li>
+          <li>🔗 Le système détecte automatiquement les clés de jointure (ex: <code>id_station_police</code>).</li>
+          <li>🎛️ Utilisez les filtres dynamiques pour explorer vos données par dimension.</li>
+          <li>🧱 Une modélisation Mermaid du cube OLAP est générée automatiquement.</li>
+        </ul>
+      </div>
+
+      <div className="mb-6">
         <input
           type="file"
           multiple
@@ -66,6 +100,18 @@ export default function Home() {
           <CubeView facts={filteredFacts} dimensions={dimensions} />
         </div>
       </div>
+
+      {mermaidSchema && (
+        <div className="mt-10 bg-white p-6 rounded shadow-md border">
+          <h2 className="text-xl font-bold mb-2 text-indigo-700">🧩 Modélisation automatique du cube OLAP</h2>
+          <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto whitespace-pre-wrap">
+            <code className="language-mermaid">{mermaidSchema}</code>
+          </pre>
+          <p className="text-gray-600 text-sm mt-2">
+            Copiez ce code dans <a href="https://mermaid.live" target="_blank" className="text-indigo-600 underline">Mermaid Live Editor</a> pour voir le graphe.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
