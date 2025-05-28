@@ -6,24 +6,42 @@ import FilterPanel from '../components/FilterPanel';
 export default function Home() {
   const [facts, setFacts] = useState([]);
   const [dimensions, setDimensions] = useState({});
+  const [filteredFacts, setFilteredFacts] = useState([]);
 
   const handleFilesUpload = (e) => {
     const files = Array.from(e.target.files);
+
     files.forEach(file => {
       Papa.parse(file, {
         header: true,
         dynamicTyping: true,
         complete: (results) => {
-          const isFactTable = file.name.toLowerCase().includes('fact');
-          if (isFactTable) {
+          const isFact = file.name.toLowerCase().includes("fact");
+          const baseName = file.name.split('.')[0];
+
+          if (isFact) {
             setFacts(results.data);
+            setFilteredFacts(results.data); // initial load
           } else {
-            const key = file.name.split('.')[0];
-            setDimensions(prev => ({ ...prev, [key]: results.data }));
+            setDimensions(prev => ({ ...prev, [baseName]: results.data }));
           }
         }
       });
     });
+  };
+
+  const handleFilterChange = (filters) => {
+    const newFacts = facts.filter(row => {
+      return Object.entries(filters).every(([dimensionKey, selectedId]) => {
+        if (!selectedId) return true;
+
+        // deviner clé étrangère probable
+        const idColumn = `id_${dimensionKey}`;
+        return String(row[idColumn]) === String(selectedId);
+      });
+    });
+
+    setFilteredFacts(newFacts);
   };
 
   return (
@@ -31,6 +49,7 @@ export default function Home() {
       <h1 className="text-3xl font-bold text-indigo-700 mb-6 text-center">
         Cube OLAP Interactif
       </h1>
+
       <div className="mb-4">
         <input
           type="file"
@@ -40,10 +59,11 @@ export default function Home() {
           className="file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
         />
       </div>
+
       <div className="grid md:grid-cols-4 gap-6">
-        <FilterPanel dimensions={dimensions} />
+        <FilterPanel dimensions={dimensions} onFilterChange={handleFilterChange} />
         <div className="md:col-span-3">
-          <CubeView facts={facts} dimensions={dimensions} />
+          <CubeView facts={filteredFacts} dimensions={dimensions} />
         </div>
       </div>
     </div>
