@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import CubeView from '../components/CubeView';
 import FilterPanel from '../components/FilterPanel';
+import mermaid from 'mermaid';
 
 export default function Home() {
   const [facts, setFacts] = useState([]);
   const [dimensions, setDimensions] = useState({});
   const [filteredFacts, setFilteredFacts] = useState([]);
   const [mermaidSchema, setMermaidSchema] = useState('');
-  const [factTableName, setFactTableName] = useState(''); // NEW
+  const [factTableName, setFactTableName] = useState('');
 
   const handleFilesUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -24,7 +25,7 @@ export default function Home() {
           if (isFact) {
             setFacts(results.data);
             setFilteredFacts(results.data);
-            setFactTableName(baseName); // NEW
+            setFactTableName(baseName);
           } else {
             setDimensions(prev => ({ ...prev, [baseName]: results.data }));
           }
@@ -66,6 +67,19 @@ export default function Home() {
     setMermaidSchema(schema);
   };
 
+  useEffect(() => {
+    if (mermaidSchema) {
+      mermaid.initialize({ startOnLoad: true });
+      setTimeout(() => {
+        try {
+          mermaid.contentLoaded();
+        } catch (e) {
+          console.error('Erreur Mermaid :', e);
+        }
+      }, 200);
+    }
+  }, [mermaidSchema]);
+
   return (
     <div className="min-h-screen px-6 py-10 bg-gray-50 text-gray-800">
       <h1 className="text-3xl font-extrabold text-center text-indigo-700 mb-6">
@@ -104,11 +118,13 @@ export default function Home() {
       {mermaidSchema && (
         <div className="mt-10 bg-white p-6 rounded shadow-md border">
           <h2 className="text-xl font-bold mb-2 text-indigo-700">🧩 Modélisation automatique du cube OLAP</h2>
-          <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto whitespace-pre-wrap">
-            <code className="language-mermaid">{mermaidSchema}</code>
-          </pre>
+          <div className="bg-gray-50 p-4 rounded text-sm overflow-auto">
+            <div className="mermaid">
+              {mermaidSchema}
+            </div>
+          </div>
           <p className="text-gray-600 text-sm mt-2">
-            Copiez ce code dans <a href="https://mermaid.live" target="_blank" className="text-indigo-600 underline">Mermaid Live Editor</a> pour voir le graphe.
+            Copiez ce code dans <a href="https://mermaid.live" target="_blank" className="text-indigo-600 underline">Mermaid Live Editor</a> si vous préférez une vue externe.
           </p>
         </div>
       )}
