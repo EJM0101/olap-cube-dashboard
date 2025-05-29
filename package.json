@@ -1,14 +1,14 @@
 {
-  "name": "olap-cube-dashboard",
+  "name": "olap-d3-dashboard",
   "version": "1.0.0",
-  "description": "OLAP Cube dashboard interactif basé sur Next.js et Tailwind CSS",
+  "description": "Dashboard de modélisation OLAP interactif avec Next.js + D3.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start"
   },
   "dependencies": {
-    "mermaid": "^10.4.0",
+    "d3": "^7.8.5",
     "next": "14.1.0",
     "papaparse": "^5.4.1",
     "react": "18.2.0",
