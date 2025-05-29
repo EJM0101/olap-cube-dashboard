@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import Papa from 'papaparse';
 import CubeView from '../components/CubeView';
 import FilterPanel from '../components/FilterPanel';
-import MermaidDiagram from '../components/MermaidDiagram'; // nouveau composant
+import OlapGraph from '../components/OlapGraph';
 
 export default function Home() {
   const [facts, setFacts] = useState([]);
   const [dimensions, setDimensions] = useState({});
   const [filteredFacts, setFilteredFacts] = useState([]);
-  const [mermaidSchema, setMermaidSchema] = useState('');
   const [factTableName, setFactTableName] = useState('');
 
   const handleFilesUpload = (e) => {
@@ -29,8 +28,6 @@ export default function Home() {
           } else {
             setDimensions(prev => ({ ...prev, [baseName]: results.data }));
           }
-
-          setTimeout(generateSchemaModel, 500);
         }
       });
     });
@@ -47,26 +44,6 @@ export default function Home() {
     setFilteredFacts(newFacts);
   };
 
-  const generateSchemaModel = () => {
-    if (!facts || facts.length === 0) return;
-
-    const dimensionsOnly = Object.keys(dimensions).filter(name => name !== factTableName);
-    const factKeys = Object.keys(facts[0]);
-
-    let schema = `graph TD\n  A[Table de faits: ${factTableName || "Faits"}]`;
-
-    dimensionsOnly.forEach(dim => {
-      const foreignKey = `id_${dim}`;
-      if (factKeys.includes(foreignKey)) {
-        const dimLabel = `B_${dim}`;
-        schema += ` --> ${dimLabel}[Dimension: ${dim}]`;
-        schema += `\n  ${dimLabel} -->|clé primaire: id| A`;
-      }
-    });
-
-    setMermaidSchema(schema);
-  };
-
   return (
     <div className="min-h-screen px-6 py-10 bg-gray-50 text-gray-800">
       <h1 className="text-3xl font-extrabold text-center text-indigo-700 mb-6">
@@ -81,7 +58,7 @@ export default function Home() {
           <li>📁 Importez vos fichiers <strong>.csv</strong> représentant la table de faits (commençant par <code>fact_</code>) et les tables de dimensions.</li>
           <li>🔗 Le système détecte automatiquement les clés de jointure (ex: <code>id_station_police</code>).</li>
           <li>🎛️ Utilisez les filtres dynamiques pour explorer vos données par dimension.</li>
-          <li>🧱 Une modélisation Mermaid du cube OLAP est générée automatiquement.</li>
+          <li>🧱 Une modélisation graphique D3.js du cube OLAP est générée automatiquement.</li>
         </ul>
       </div>
 
@@ -102,8 +79,12 @@ export default function Home() {
         </div>
       </div>
 
-      {mermaidSchema && (
-        <MermaidDiagram chart={mermaidSchema} />
+      {factTableName && facts.length > 0 && (
+        <OlapGraph
+          factName={factTableName}
+          dimensions={dimensions}
+          factKeys={Object.keys(facts[0])}
+        />
       )}
     </div>
   );
